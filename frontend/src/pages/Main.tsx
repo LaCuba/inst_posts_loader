@@ -7,14 +7,10 @@ import {
 } from '@/components/ui-shadcn/card'
 import { Input } from '@/components/ui-shadcn/input'
 import { Label } from '@/components/ui-shadcn/label'
-import { Select } from '@/components/ui/Select'
 import React from 'react'
 
 export function Main() {
-  const [form, setForm] = React.useState({
-    nickname: '',
-    year: '',
-  })
+  const [username, setNickname] = React.useState('')
 
   return (
     <div className="w-full h-full flex flex-col gap-5">
@@ -25,17 +21,14 @@ export function Main() {
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
             <div className="grid gap-2">
-              <Label htmlFor="nickname">Nickname</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
-                id="nickname"
-                // type="email"
-                placeholder="insta_nickname"
+                id="username"
+                placeholder="inst_username"
+                value={username}
+                onChange={(event) => setNickname(event.currentTarget.value)}
                 required
               />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="count_of_posts">Count of posts</Label>
-              <Input id="count_of_posts" placeholder="300" required />
             </div>
             <div className="flex gap-2">
               <Button variant="outline">Download</Button>
@@ -43,34 +36,6 @@ export function Main() {
             </div>
           </CardContent>
         </Card>
-        {/* <Input
-          placeholder="nickname"
-          value={form.nickname}
-          onChange={(event) =>
-            setForm((prev) => ({
-              ...prev,
-              nickname: event.currentTarget.value,
-            }))
-          }
-        />
-        <Input
-          placeholder="Count of posts"
-          value={form.nickname}
-          onChange={(event) =>
-            setForm((prev) => ({
-              ...prev,
-              nickname: event.currentTarget.value,
-            }))
-          }
-        />
-        <Select
-          value={form.year}
-          options={[]}
-          onChange={(value) => setForm((prev) => ({ ...prev, year: value }))}
-        />
-        <Button type="submit" variant="outline">
-          Subscribe
-        </Button> */}
       </div>
     </div>
   )

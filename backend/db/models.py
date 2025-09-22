@@ -8,7 +8,7 @@ class Account(Base):
     __tablename__ = "accounts"
     id = Column(Integer, primary_key=True)
     username = Column(String(255), unique=True, nullable=False)
-    mediacount = Column(Integer)
+    total_posts = Column(Integer)
 
     posts = relationship("Post", back_populates="account",
                          cascade="all, delete")
@@ -24,6 +24,8 @@ class Post(Base):
     likes = Column(Integer)
     comments = Column(Integer)
     url = Column(String)
+    video_url = Column(String)
+    typename = Column(String)
 
     account = relationship("Account", back_populates="posts")
 

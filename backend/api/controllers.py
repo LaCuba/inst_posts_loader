@@ -1,3 +1,4 @@
+from backend.db.models import Account, Post
 from backend.downloader import load_session
 from backend.api.models import ProcessingStatus
 
@@ -8,10 +9,12 @@ import random
 
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def download_posts(username: str):
-    Loader = load_session()
+async def download_posts(username: str, session: AsyncSession, redis_session):
+    value = await redis_session.get("inst_auth")
+    Loader = load_session(**value)
     try:
         profile = instaloader.Profile.from_username(Loader.context, username)
         total_posts = profile.mediacount
@@ -30,9 +33,16 @@ async def download_posts(username: str):
             "total_posts": total_posts,
             "percent": percent
         })
+        account = Account(
+            username=username,
+            total_posts=total_posts
+        )
+        session.add(account)
+        await session.commit()
 
         for post in iterator:
-            # write on the db
+            session.add(Post(account_id=account.id, **post))
+            await session.commit()
 
             if downloaded_posts_count >= total_posts:
                 break
