@@ -38,7 +38,9 @@ async def accounts_download(username: str, session: AsyncSession = Depends(get_s
 
 
 @router.get("/accounts/{username}/posts", description="Get the posts by username account")
-async def list_accounts_posts(username: str,  start_date=None, end_date=None, text=None, limit=50, offset=0, session: AsyncSession = Depends(get_session)):
+async def list_accounts_posts(username: str,  start_date=None, end_date=None, text=None, page=1, session: AsyncSession = Depends(get_session)):
+    limit = 50
+
     stmt = select(Post)
     if username:
         stmt = stmt.join(Post.account).where(
@@ -50,7 +52,8 @@ async def list_accounts_posts(username: str,  start_date=None, end_date=None, te
     if text:
         stmt = stmt.where(Post.caption.ilike(f"%{text}%"))
 
-    stmt = stmt.order_by(Post.date_utc.desc()).limit(limit).offset(offset)
+    stmt = stmt.order_by(Post.date_utc.desc()).limit(
+        limit).offset(limit * page)
 
     return session.execute(stmt).scalars().all()
 

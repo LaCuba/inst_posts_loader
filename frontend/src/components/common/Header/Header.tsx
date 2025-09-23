@@ -1,3 +1,4 @@
+import { AuthModal } from '@/components/modals'
 import { useTheme } from '@/components/providers'
 import { Button } from '@/components/ui-shadcn/button'
 import { Label } from '@/components/ui-shadcn/label'
@@ -9,12 +10,13 @@ import {
   navigationMenuTriggerStyle,
 } from '@/components/ui-shadcn/navigation-menu'
 import { Switch } from '@/components/ui-shadcn/switch'
+import React from 'react'
 import { NavLink } from 'react-router'
 
 const ITEMS = [
   {
     href: '/',
-    label: 'Home',
+    label: 'Downloader',
   },
   {
     href: '/accounts',
@@ -23,11 +25,12 @@ const ITEMS = [
 ]
 
 export function Header() {
+  const [isOpenAuthModal, setIsOpenAuthModal] = React.useState(false)
   const { setTheme, theme } = useTheme()
   const isThemeChecked = theme === 'dark'
 
   return (
-    <div className="w-full h-[60px] flex items-center">
+    <div className="w-full h-[60px] min-h-[60px] flex items-center">
       <div className="w-full max-w-[1280px] m-auto flex gap-10 justify-between">
         <div className="w-full">
           <NavigationMenu viewport={false}>
@@ -48,7 +51,7 @@ export function Header() {
           </NavigationMenu>
         </div>
         <div className="flex gap-5 items-center">
-          <Button>Auth</Button>
+          <Button onClick={() => setIsOpenAuthModal(true)}>Auth</Button>
           <div className="flex flex-col gap-2 items-center">
             <Label htmlFor="theme-mode">Theme</Label>
             <Switch
@@ -61,6 +64,10 @@ export function Header() {
           </div>
         </div>
       </div>
+      <AuthModal
+        isOpen={isOpenAuthModal}
+        onClose={() => setIsOpenAuthModal(false)}
+      />
     </div>
   )
 }

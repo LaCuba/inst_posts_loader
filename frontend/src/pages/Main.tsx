@@ -1,3 +1,5 @@
+import React from 'react'
+
 import { Button } from '@/components/ui-shadcn/button'
 import {
   Card,
@@ -7,10 +9,24 @@ import {
 } from '@/components/ui-shadcn/card'
 import { Input } from '@/components/ui-shadcn/input'
 import { Label } from '@/components/ui-shadcn/label'
-import React from 'react'
+import { useSSE } from '@/lib/hooks'
+import { Progress } from '@/components/ui-shadcn/progress'
+
+type ProgressData = {
+  status: string
+  total_posts: number
+  percent: number
+}
 
 export function Main() {
   const [username, setNickname] = React.useState('')
+  const [confirmed, setConfirmed] = React.useState(false)
+
+  const data = useSSE<ProgressData>(
+    `/api/accounts/${username}/download`,
+    confirmed,
+  )
+  const lastProgress = data[data.length - 1]
 
   return (
     <div className="w-full h-full flex flex-col gap-5">
@@ -31,9 +47,16 @@ export function Main() {
               />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline">Download</Button>
+              <Button
+                variant="outline"
+                onClick={() => setConfirmed((prev) => !prev)}
+                disabled={confirmed}
+              >
+                Download
+              </Button>
               <Button variant="secondary">Stop</Button>
             </div>
+            {lastProgress?.percent && <Progress value={lastProgress.percent} />}
           </CardContent>
         </Card>
       </div>

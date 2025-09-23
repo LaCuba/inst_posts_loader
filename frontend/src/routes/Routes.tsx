@@ -10,7 +10,7 @@ export function Routes() {
       <Route path="/" element={<layouts.Root />}>
         <Route index element={<Main />} />
         <Route path="accounts" element={<Accounts />} />
-        <Route path="accounts/:id" element={<Account />} />
+        <Route path="accounts/:username" element={<Account />} />
       </Route>
     </RouterRoutes>
   )

@@ -1,36 +1,49 @@
-import React from 'react'
-
-import { Button } from '@/components/ui-shadcn/button'
+import { AccountCard } from '@/components/common/AccountCard'
 import { Input } from '@/components/ui-shadcn/input'
-import { Select } from '@/components/ui/Select'
+import React from 'react'
+import { useNavigate } from 'react-router'
+
+const DATA = [
+  { totalposts: 124, username: 'nfuasdi', id: 234 },
+  { totalposts: 12341234, username: 'nfuasdisadfsadf', id: 2341 },
+  { totalposts: 12341234, username: 'asdf', id: 23411 },
+  { totalposts: 12341234, username: 'nfuasdisadfsadf', id: 23412 },
+  { totalposts: 12341234, username: 'nfuasdisadfsadf', id: 23413 },
+  { totalposts: 12341234, username: 'erqw', id: 23414 },
+  { totalposts: 12341234, username: 'sm', id: 23415 },
+]
 
 export function Accounts() {
-  const [form, setForm] = React.useState({
-    nickname: '',
-    year: '',
-  })
+  const navigate = useNavigate()
+  const [searchText, setSearchText] = React.useState('')
+
+  const displayAccounts = React.useMemo(() => {
+    const lowerSearchText = searchText.toLocaleLowerCase()
+    return DATA.filter((account) =>
+      account.username.toLocaleLowerCase().includes(lowerSearchText),
+    )
+  }, [searchText])
 
   return (
-    <div className="w-full h-full flex flex-col gap-5">
-      <div className="flex w-full max-w-sm m-auto items-center gap-2">
-        <Input
-          placeholder="nickname"
-          value={form.nickname}
-          onChange={(event) =>
-            setForm((prev) => ({
-              ...prev,
-              nickname: event.currentTarget.value,
-            }))
-          }
-        />
-        <Select
-          value={form.year}
-          options={[]}
-          onChange={(value) => setForm((prev) => ({ ...prev, year: value }))}
-        />
-        <Button type="submit" variant="outline">
-          Subscribe
-        </Button>
+    <div className="w-full h-full flex flex-col gap-20">
+      <Input
+        className="w-[40%] m-auto"
+        placeholder="search by username"
+        value={searchText}
+        onChange={(event) => setSearchText(event.currentTarget.value)}
+      />
+      <div className="h-full min-h-0 max-h-full flex-1 overflow-auto pb-10 flex gap-10 flex-wrap">
+        {displayAccounts.map((account) => {
+          return (
+            <AccountCard
+              key={account.id}
+              id={account.id}
+              totalCount={account.totalposts}
+              name={account.username}
+              onCardClick={() => navigate(`/accounts/${account.username}`)}
+            />
+          )
+        })}
       </div>
     </div>
   )
