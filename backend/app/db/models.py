@@ -1,4 +1,4 @@
-from backend.db.database import Base
+from app.db.database import Base
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, Index
 from sqlalchemy.orm import relationship
@@ -29,5 +29,15 @@ class Post(Base):
 
     account = relationship("Account", back_populates="posts")
 
+    # __table_args__ = (
+    #     Index(
+    #         "idx_posts_caption_trgm",
+    #         caption,
+    #         postgresql_using="gin",
+    #         postgresql_ops={"caption": "gin_trgm_ops"},
+    #     ),
+    # )
 
-Index("idx_posts_caption_gin", Post.caption, postgresql_using="gin")
+
+# Index("idx_posts_caption_gin", Post.caption, postgresql_using="gin", postgresql_ops={"caption": "gin_trgm_ops"}
+#       )

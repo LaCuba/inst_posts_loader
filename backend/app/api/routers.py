@@ -1,8 +1,8 @@
-from backend.api.models import InstaAuthModel
-from backend.api.controllers import download_posts
-from backend.db.database import get_session
-from backend.db.models import Account, Post
-from backend.redis_db.database import get_redis
+from app.api.models import InstaAuthModel
+from app.api.controllers import download_posts
+from app.db.database import get_session
+from app.db.models import Account, Post
+from app.redis_db.database import get_redis
 
 from sqlalchemy import select
 from fastapi import APIRouter, Depends, HTTPException
@@ -49,8 +49,8 @@ async def list_accounts_posts(username: str,  start_date=None, end_date=None, te
         stmt = stmt.where(Post.date_utc >= start_date)
     if end_date:
         stmt = stmt.where(Post.date_utc <= end_date)
-    if text:
-        stmt = stmt.where(Post.caption.ilike(f"%{text}%"))
+    # if text:
+    #     stmt = stmt.where(Post.caption.ilike(f"%{text}%"))
 
     stmt = stmt.order_by(Post.date_utc.desc()).limit(
         limit).offset(limit * page)

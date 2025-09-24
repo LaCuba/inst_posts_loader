@@ -1,6 +1,6 @@
-from backend.db.models import Account, Post
-from backend.downloader import load_session
-from backend.api.models import ProcessingStatus
+from app.db.models import Account, Post
+from app.downloader import load_session
+from app.api.models import ProcessingStatus
 
 import json
 import instaloader

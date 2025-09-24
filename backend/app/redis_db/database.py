@@ -1,6 +1,6 @@
 import redis.asyncio as aioredis
 
-from backend.settings import settings
+from app.settings import settings
 
 redis = aioredis.from_url(
     settings.REDIS_URL,
