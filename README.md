@@ -4,7 +4,7 @@
 
 # Description
 
-### Fullstack app for load posts from inst and filter them.
+#### Fullstack app for load posts from inst and filter them.
 
 # Project Tech Stack
 
