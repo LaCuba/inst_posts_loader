@@ -1,11 +1,11 @@
 from app.api.models import InstaAuthModel
-from app.api.controllers import download_posts
+from app.api.controllers import download_posts, get_download_status
 from app.db.database import get_session
 from app.db.models import Account, Post
 from app.redis_db.database import get_redis
 
 from sqlalchemy import select
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import json
@@ -20,7 +20,7 @@ def root():
 
 @router.post("/set_inst_auth", description="Set insta auth for download posts")
 async def set_inst_auth(body: InstaAuthModel, rdb=Depends(get_redis)):
-    await rdb.set("inst_auth", json.dumps(body), ex=3600)
+    await rdb.set("inst_auth", body.model_dump_json(), ex=3600)
     return {
         "status": "ok",
     }
@@ -38,9 +38,10 @@ async def accounts_download(username: str, session: AsyncSession = Depends(get_s
 
 
 @router.get("/accounts/{username}/posts", description="Get the posts by username account")
-async def list_accounts_posts(username: str,  start_date=None, end_date=None, text=None, page=1, session: AsyncSession = Depends(get_session)):
+async def list_accounts_posts(username: str,  start_date=None, end_date=None, text=None, page: int = Query(1, ge=1, le=10_000), session: AsyncSession = Depends(get_session)):
     limit = 50
-
+    print(
+        f"-----------------------------------------------start_date ->{start_date}, end_date->{end_date}, text->{text}, page->{page},")
     stmt = select(Post)
     if username:
         stmt = stmt.join(Post.account).where(
@@ -53,9 +54,11 @@ async def list_accounts_posts(username: str,  start_date=None, end_date=None, te
     #     stmt = stmt.where(Post.caption.ilike(f"%{text}%"))
 
     stmt = stmt.order_by(Post.date_utc.desc()).limit(
-        limit).offset(limit * page)
+        limit).offset((limit * page) - limit)
 
-    return session.execute(stmt).scalars().all()
+    result = await session.execute(stmt)
+
+    return result.scalars().all()
 
 
 @router.get("/accounts/posts/{post_id}", description="Get the post by post id")
@@ -75,3 +78,8 @@ async def get_post(post_id: int, session: AsyncSession = Depends(get_session)):
         "url": post.url,
         "video_url": post.video_url,
     }
+
+
+@router.get('/accounts/posts/download_status/{job_id}')
+async def get_posts_download_status(job_id: str, rdb=Depends(get_redis)):
+    return await get_download_status(job_id, rdb)

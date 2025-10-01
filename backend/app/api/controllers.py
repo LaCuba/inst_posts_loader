@@ -1,20 +1,29 @@
-from app.db.models import Account, Post
-from app.downloader import load_session
-from app.api.models import ProcessingStatus
+import uuid
+from app.db.models import Account
+from app.downloader import load_session, start_download
+from app.api.models import ProcessingStatus, ProcessingStatusData
+from app.utils.sse_safe import safe_sse
 
 import json
+import asyncio
 import instaloader
-import time
-import random
 
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def download_posts(username: str, session: AsyncSession, redis_session):
-    value = await redis_session.get("inst_auth")
-    Loader = load_session(**value)
+    value: str = await redis_session.get("inst_auth")
+
+    if not value:
+        raise HTTPException(
+            status_code=400, detail="Could not get inst auth. Please complete the inst auth")
+
+    data = json.loads(value)
+    Loader = load_session(**data)
+
     try:
         profile = instaloader.Profile.from_username(Loader.context, username)
         total_posts = profile.mediacount
@@ -23,43 +32,42 @@ async def download_posts(username: str, session: AsyncSession, redis_session):
         raise HTTPException(
             status_code=400, detail=f"Could not load profile: {error}")
 
-    async def event_generator():
-        iterator = profile.get_posts()
-        downloaded_posts_count = 0
-        percent = 0
+    accountResult = await session.execute(select(Account).where(Account.username == username))
+    account = accountResult.scalar_one_or_none()
 
-        yield json.dumps({
-            "status": ProcessingStatus.STARTING,
-            "total_posts": total_posts,
-            "percent": percent
-        })
+    if not account:
         account = Account(
             username=username,
             total_posts=total_posts
         )
         session.add(account)
         await session.commit()
+        await session.refresh(account)
 
-        for post in iterator:
-            session.add(Post(account_id=account.id, **post))
-            await session.commit()
+    job_id = str(uuid.uuid4())
 
-            if downloaded_posts_count >= total_posts:
+    asyncio.create_task(start_download(job_id,
+                                       account.id, total_posts, profile, session, redis_session))
+
+    return {"job_id": job_id}
+
+
+async def get_download_status(job_id: str, redis_session):
+
+    async def get_status():
+        while True:
+            value: str = await redis_session.get(job_id)
+            current_status = ProcessingStatusData.model_validate_json(value)
+            await asyncio.sleep(15)
+
+            payload = json.dumps({
+                "status": current_status.status.value,
+                "total_posts": current_status.total_posts,
+                "percent": current_status.percent
+            })
+            yield f"data: {payload}\n\n"
+
+            if current_status.status == ProcessingStatus.COMPLETED or not current_status.status:
                 break
 
-            downloaded_posts_count += 1
-            current_percent = round(
-                (downloaded_posts_count / total_posts) * 100, 2)
-
-            if current_percent != percent and current_percent % 2:
-                yield json.dumps({
-                    "status": ProcessingStatus.PROCESSING,
-                    "total_posts": total_posts,
-                    "percent": percent
-                })
-
-            time.sleep(round(random.uniform(0.2, 0.4), 2))
-
-        yield json.dumps({"status": ProcessingStatus.COMPLETED, "total_posts": total_posts, "percent": percent}) + "\n"
-
-    return StreamingResponse(event_generator(), media_type="application/json")
+    return StreamingResponse(safe_sse(get_status()), media_type="text/event-stream")

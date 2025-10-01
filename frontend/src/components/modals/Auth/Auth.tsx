@@ -49,13 +49,24 @@ export function AuthModal(props: Props) {
   const [form, setForm] = React.useState(INITIAL_FORM)
   if (!props.isOpen) return null
 
-  function handleConfirm() {
-    handleClose()
+  async function handleConfirm() {
+    try {
+      await fetch('/api/set_inst_auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(form),
+      })
+      handleClose()
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   function handleClose() {
     props.onClose?.()
-    setForm(INITIAL_FORM)
+    // setForm(INITIAL_FORM)
   }
 
   function handleChangeFormValue(payload: SetFormPayload<AuthData>) {

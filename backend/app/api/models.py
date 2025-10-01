@@ -24,3 +24,9 @@ class ProcessingStatus(str, Enum):
     STARTING = 'starting'
     PROCESSING = 'processing'
     COMPLETED = 'completed'
+
+
+class ProcessingStatusData(BaseModel):
+    status: ProcessingStatus
+    total_posts: int
+    percent: int

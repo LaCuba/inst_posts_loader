@@ -20,13 +20,43 @@ type ProgressData = {
 
 export function Main() {
   const [username, setNickname] = React.useState('')
-  const [confirmed, setConfirmed] = React.useState(false)
+  const [jobId, setJobId] = React.useState<string>()
 
-  const data = useSSE<ProgressData>(
-    `/api/accounts/${username}/download`,
-    confirmed,
+  const { data, error } = useSSE<ProgressData>(
+    `/api/accounts/posts/download_status/${jobId}`,
+    Boolean(jobId),
   )
+
+  React.useEffect(() => {
+    const jobId = window.localStorage.getItem('active_job_id')
+    if (jobId) setJobId(jobId)
+  }, [])
+
+  async function handleDownloadPosts() {
+    try {
+      const response = await fetch(`/api/accounts/${username}/download`, {
+        method: 'get',
+      })
+      const data = (await response.json()) as {
+        job_id: string
+      }
+      if (data.job_id) {
+        window.localStorage.setItem('active_job_id', data.job_id)
+        setJobId(data.job_id)
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
   const lastProgress = data[data.length - 1]
+
+  React.useEffect(() => {
+    if (lastProgress?.percent === 100) {
+      setJobId(undefined)
+      window.localStorage.removeItem('active_job_id')
+    }
+  }, [lastProgress?.percent])
 
   return (
     <div className="w-full h-full flex flex-col gap-5">
@@ -49,14 +79,17 @@ export function Main() {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={() => setConfirmed((prev) => !prev)}
-                disabled={confirmed}
+                onClick={handleDownloadPosts}
+                disabled={Boolean(jobId)}
               >
                 Download
               </Button>
               <Button variant="secondary">Stop</Button>
             </div>
-            {lastProgress?.percent && <Progress value={lastProgress.percent} />}
+            {Boolean(lastProgress?.percent !== undefined) && (
+              <Progress value={lastProgress.percent} />
+            )}
+            <div className="text-red">{error}</div>
           </CardContent>
         </Card>
       </div>
