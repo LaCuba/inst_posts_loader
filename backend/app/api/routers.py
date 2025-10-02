@@ -40,8 +40,6 @@ async def accounts_download(username: str, session: AsyncSession = Depends(get_s
 @router.get("/accounts/{username}/posts", description="Get the posts by username account")
 async def list_accounts_posts(username: str,  start_date=None, end_date=None, text=None, page: int = Query(1, ge=1, le=10_000), session: AsyncSession = Depends(get_session)):
     limit = 50
-    print(
-        f"-----------------------------------------------start_date ->{start_date}, end_date->{end_date}, text->{text}, page->{page},")
     stmt = select(Post)
     if username:
         stmt = stmt.join(Post.account).where(
@@ -63,8 +61,7 @@ async def list_accounts_posts(username: str,  start_date=None, end_date=None, te
 
 @router.get("/accounts/posts/{post_id}", description="Get the post by post id")
 async def get_post(post_id: int, session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Post).where(Post.id == post_id))
-    post = result.scalars().first()
+    post = (await session.execute(select(Post).where(Post.id == post_id))).scalar_one_or_none()
 
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
@@ -74,7 +71,8 @@ async def get_post(post_id: int, session: AsyncSession = Depends(get_session)):
         "caption": post.caption,
         "typename": post.typename,
         "account_id": post.account_id,
-        "created_at": post.created_at,
+        "username": post.account.username,
+        "date_utc": post.date_utc,
         "url": post.url,
         "video_url": post.video_url,
     }

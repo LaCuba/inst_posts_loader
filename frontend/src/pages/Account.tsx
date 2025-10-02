@@ -1,13 +1,12 @@
 import React from 'react'
-import useSWR from 'swr'
 
 import { Button } from '@/components/ui-shadcn/button'
 import { Input } from '@/components/ui-shadcn/input'
 import { Select } from '@/components/ui/Select'
-import { useParams } from 'react-router'
-import { fetcher } from '@/lib/utils'
-import type { SetFormPayload } from '@/typings'
+import { useNavigate, useParams } from 'react-router'
+import type { Post, SetFormPayload } from '@/typings'
 import { PostCard } from '@/components/common/PostCard'
+import { useSWR } from '@/lib/hooks/useSWR'
 
 const MOCK_DATES = [
   {
@@ -76,23 +75,14 @@ const MOCK_DATES = [
   },
 ]
 
-type Post = {
-  id: number
-  account_id: number
-  date_utc: string
-  caption: string
-  likes: number
-  url: string
-  video_url: string
-  typename: string
-}
-
 type Form = {
   text: string
   date: string
 }
 
 export function Account() {
+  const navigate = useNavigate()
+
   const { username } = useParams()
   const [form, setForm] = React.useState({
     text: '',
@@ -108,7 +98,6 @@ export function Account() {
 
   const { data: posts } = useSWR<Post[]>(
     `/api/accounts/${username}/posts?${params}`,
-    fetcher,
   )
 
   function handleChangeFormValue(payload: SetFormPayload<Form>) {
@@ -116,6 +105,10 @@ export function Account() {
       ...prev,
       [payload.key]: payload.value,
     }))
+  }
+
+  function handleCardClick(postId: number) {
+    navigate(`/posts/${postId}`)
   }
 
   return (
@@ -146,9 +139,17 @@ export function Account() {
           Search
         </Button>
       </div>
-      <div className="h-full max-h-full scroll-auto flex gap-10 flex-wrap">
+      <div className="h-full max-h-full scroll-auto flex gap-5 flex-wrap">
         {posts?.map((post) => {
-          return <PostCard key={post.id} src={post.url} text={post.caption} />
+          return (
+            <PostCard
+              key={post.id}
+              src={post.url}
+              text={post.caption}
+              createdDate={post.date_utc}
+              onCardClick={() => handleCardClick(post.id)}
+            />
+          )
         })}
       </div>
     </div>

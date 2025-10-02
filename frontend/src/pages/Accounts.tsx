@@ -1,9 +1,8 @@
 import { AccountCard } from '@/components/common/AccountCard'
 import { Input } from '@/components/ui-shadcn/input'
-import { fetcher } from '@/lib/utils'
+import { useSWR } from '@/lib/hooks/useSWR'
 import React from 'react'
 import { useNavigate } from 'react-router'
-import useSWR from 'swr'
 
 // const DATA = [
 //   { totalposts: 124, username: 'nfuasdi', id: 234 },
@@ -16,7 +15,7 @@ import useSWR from 'swr'
 // ]
 
 type Account = {
-  totalposts: number
+  total_posts: number
   username: string
   id: number
 }
@@ -25,7 +24,7 @@ export function Accounts() {
   const navigate = useNavigate()
   const [searchText, setSearchText] = React.useState('')
 
-  const { data: accounts } = useSWR<Account[]>('/api/accounts', fetcher)
+  const { data: accounts } = useSWR<Account[]>('/api/accounts')
 
   const displayAccounts = React.useMemo(() => {
     const lowerSearchText = searchText.toLocaleLowerCase()
@@ -48,7 +47,7 @@ export function Accounts() {
             <AccountCard
               key={account.id}
               id={account.id}
-              totalCount={account.totalposts}
+              totalCount={account.total_posts}
               name={account.username}
               onCardClick={() => navigate(`/accounts/${account.username}`)}
             />

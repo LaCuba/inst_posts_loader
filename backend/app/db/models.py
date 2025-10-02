@@ -27,7 +27,9 @@ class Post(Base):
     video_url = Column(String)
     typename = Column(String)
 
-    account = relationship("Account", back_populates="posts")
+    account = relationship("Account", back_populates="posts", lazy="selectin")
+
+    # account = relationship("Account", back_populates="posts")
 
     # __table_args__ = (
     #     Index(
