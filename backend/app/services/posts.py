@@ -1,9 +1,9 @@
-import uuid
-from app.db.models import Account
+from app.models.posts import Account
 from app.downloader import load_session, start_download
-from app.api.models import ProcessingStatus, ProcessingStatusData
+from app.api.schemas.posts import ProcessingStatus, ProcessingStatusData
 from app.utils.sse_safe import safe_sse
 
+import uuid
 import json
 import asyncio
 import instaloader

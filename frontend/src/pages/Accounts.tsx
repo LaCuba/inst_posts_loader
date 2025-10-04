@@ -4,16 +4,6 @@ import { useSWR } from '@/lib/hooks/useSWR'
 import React from 'react'
 import { useNavigate } from 'react-router'
 
-// const DATA = [
-//   { totalposts: 124, username: 'nfuasdi', id: 234 },
-//   { totalposts: 12341234, username: 'nfuasdisadfsadf', id: 2341 },
-//   { totalposts: 12341234, username: 'asdf', id: 23411 },
-//   { totalposts: 12341234, username: 'nfuasdisadfsadf', id: 23412 },
-//   { totalposts: 12341234, username: 'nfuasdisadfsadf', id: 23413 },
-//   { totalposts: 12341234, username: 'erqw', id: 23414 },
-//   { totalposts: 12341234, username: 'sm', id: 23415 },
-// ]
-
 type Account = {
   total_posts: number
   username: string

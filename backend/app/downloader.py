@@ -5,8 +5,8 @@ import instaloader
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Post
-from app.api.models import ProcessingStatus
+from app.models.posts import Post
+from app.api.schemas.posts import ProcessingStatus
 
 
 async def create_post(session: AsyncSession, post: Post):
@@ -46,7 +46,6 @@ async def start_download(job_id: str, account_id: int, total_posts: int, profile
     }))
 
     for post_data in iterator:
-        print('--------------------------------> post_data')
         post = Post(account_id=account_id, shortcode=post_data.shortcode, date_utc=post_data.date_utc, caption=post_data.caption,
                     likes=post_data.likes, comments=post_data.comments, url=post_data.url, video_url=post_data.video_url, typename=post_data.typename)
 

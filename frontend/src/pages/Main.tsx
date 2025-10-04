@@ -23,7 +23,7 @@ export function Main() {
   const [jobId, setJobId] = React.useState<string>()
 
   const { data, error } = useSSE<ProgressData>(
-    `/api/accounts/posts/download_status/${jobId}`,
+    `/api/posts/download_status/${jobId}`,
     Boolean(jobId),
   )
 
@@ -34,7 +34,7 @@ export function Main() {
 
   async function handleDownloadPosts() {
     try {
-      const response = await fetch(`/api/accounts/${username}/download`, {
+      const response = await fetch(`/api/posts/download/${username}`, {
         method: 'get',
       })
       const data = (await response.json()) as {

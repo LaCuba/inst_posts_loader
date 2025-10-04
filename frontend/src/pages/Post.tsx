@@ -3,12 +3,12 @@ import { useParams } from 'react-router'
 import type { Post as PostType } from '../typings'
 import { useSWR } from '@/lib/hooks/useSWR'
 import { Card, CardContent, CardHeader } from '@/components/ui-shadcn/card'
-import { PostCardSkeleton } from '@/components/pages/Posts/Skeleton'
+import { PostCardSkeleton } from '@/components/common/PostSkeleton'
 
 export function Post() {
   const { postId } = useParams()
 
-  const { data: post } = useSWR<PostType>(`/api/accounts/posts/${postId}`)
+  const { data: post } = useSWR<PostType>(`/api/posts/${postId}`)
 
   if (!post)
     return (

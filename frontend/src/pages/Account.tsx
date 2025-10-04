@@ -97,7 +97,7 @@ export function Account() {
   })
 
   const { data: posts } = useSWR<Post[]>(
-    `/api/accounts/${username}/posts?${params}`,
+    `/api/posts/list/${username}?${params}`,
   )
 
   function handleChangeFormValue(payload: SetFormPayload<Form>) {

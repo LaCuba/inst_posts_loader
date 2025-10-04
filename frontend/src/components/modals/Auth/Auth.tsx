@@ -51,7 +51,7 @@ export function AuthModal(props: Props) {
 
   async function handleConfirm() {
     try {
-      await fetch('/api/set_inst_auth', {
+      await fetch('/api/auth/inst', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ export function AuthModal(props: Props) {
 
   function handleClose() {
     props.onClose?.()
-    // setForm(INITIAL_FORM)
+    setForm(INITIAL_FORM)
   }
 
   function handleChangeFormValue(payload: SetFormPayload<AuthData>) {

@@ -1,4 +1,4 @@
-from app.db.database import Base
+from app.core.postgres import Base
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, Index
 from sqlalchemy.orm import relationship
