@@ -1,5 +1,5 @@
-
 from app.services.posts import download_posts, get_download_status
+from app.services.redis import RedisManager
 from app.core.postgres import get_session
 from app.models.posts import Post
 from app.core.redis import get_redis
@@ -31,9 +31,15 @@ async def get_post(post_id: int, session: AsyncSession = Depends(get_session)):
     }
 
 
-@router.get("/download/{username}", description="Download posts from insta and save in db")
-async def accounts_download(username: str, session: AsyncSession = Depends(get_session), rdb=Depends(get_redis)):
+@router.get("/download/{username}", description="Download posts from inst and save in db")
+async def account_posts_download(username: str, session: AsyncSession = Depends(get_session), rdb: RedisManager = Depends(get_redis)):
     return await download_posts(username, session, rdb)
+
+
+@router.get("/download/{username}/stop", description="Stop posts downloading process")
+async def stop_account_posts_download(username: str, session: AsyncSession = Depends(get_session), rdb=Depends(get_redis)):
+
+    return
 
 
 @router.get("/list/{username}", description="Get the posts by username account")

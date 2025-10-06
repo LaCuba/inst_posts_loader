@@ -1,6 +1,8 @@
 from enum import Enum
 from pydantic import BaseModel, Field
 from typing import Optional
+from uuid import UUID
+
 
 # class DownloadModel(BaseModel):
 #     nickname: str
@@ -17,6 +19,9 @@ class ProcessingStatus(str, Enum):
 
 
 class ProcessingStatusData(BaseModel):
+    job_id: UUID
+    username: str
+    is_canceled: Optional[bool] = False
     status: ProcessingStatus
     total_posts: int
     percent: int
