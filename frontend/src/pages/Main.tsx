@@ -51,12 +51,27 @@ export function Main() {
 
   const lastProgress = data[data.length - 1]
 
+  function clearDownload() {
+    setJobId(undefined)
+    window.localStorage.removeItem('active_job_id')
+  }
+
   React.useEffect(() => {
     if (lastProgress?.percent === 100) {
-      setJobId(undefined)
-      window.localStorage.removeItem('active_job_id')
+      clearDownload()
     }
   }, [lastProgress?.percent])
+
+  async function handleCancelDownload() {
+    try {
+      await fetch(`/api/posts/download/${username}/cancel`, {
+        method: 'get',
+      })
+      clearDownload()
+    } catch (error) {
+      console.error(error)
+    }
+  }
 
   return (
     <div className="w-full h-full flex flex-col gap-5">
@@ -84,7 +99,13 @@ export function Main() {
               >
                 Download
               </Button>
-              <Button variant="secondary">Stop</Button>
+              <Button
+                variant="secondary"
+                onClick={handleCancelDownload}
+                // disabled={!jobId}
+              >
+                Cancel
+              </Button>
             </div>
             {Boolean(lastProgress?.percent !== undefined) && (
               <Progress value={lastProgress.percent} />

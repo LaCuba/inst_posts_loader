@@ -6,6 +6,7 @@ export function useSSE<T>(url: string, isStart: boolean = true) {
 
   React.useEffect(() => {
     if (!isStart) return
+    debugger
     const eventSource = new EventSource(url)
 
     eventSource.onmessage = (event) => {
