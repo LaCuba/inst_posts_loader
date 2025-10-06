@@ -16,10 +16,10 @@ class ProcessingStatus(str, Enum):
     STARTING = 'starting'
     PROCESSING = 'processing'
     COMPLETED = 'completed'
+    CANCELED = 'canceled'
 
 
 class ProcessingStatusData(BaseModel):
-    job_id: UUID
     username: str
     is_canceled: Optional[bool] = False
     status: ProcessingStatus

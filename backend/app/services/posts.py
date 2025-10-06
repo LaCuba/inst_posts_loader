@@ -1,5 +1,4 @@
 from app.models.posts import Account, Post
-# from backend.app.services.download_posts import load_session, start_download
 from app.api.schemas.posts import ProcessingStatus, ProcessingStatusData
 from app.api.schemas.auth import InstAuthModel
 from app.utils.sse_safe import safe_sse
@@ -27,7 +26,14 @@ async def _create_post(session: AsyncSession, post: Post):
         await session.rollback()
 
 
-def _load_session(nickname: str, sessionid: str, ds_user_id: str, csrftoken: str, mid: str, ig_did: str):
+def _load_session(
+    nickname: str,
+    sessionid: str,
+    ds_user_id: str,
+    csrftoken: str,
+    mid: str,
+    ig_did: str
+):
     Loader = instaloader.Instaloader()
 
     Loader.load_session(nickname, {
@@ -43,40 +49,89 @@ def _load_session(nickname: str, sessionid: str, ds_user_id: str, csrftoken: str
     return Loader
 
 
-async def _download_worker(job_id: str, username: str, account_id: int, total_posts: int, profile: instaloader.Profile, session: AsyncSession, redis_session: RedisManager):
+async def _download_worker(
+    username: str,
+    account_id: int,
+    total_posts: int,
+    profile: instaloader.Profile,
+    session: AsyncSession,
+    redis_session: RedisManager
+):
     iterator = profile.get_posts()
     downloaded_posts_count = 0
     percent = 0
 
-    await redis_session.save('jobs', ProcessingStatusData(job_id=job_id, username=username, status=ProcessingStatus.STARTING, total_posts=total_posts, percent=percent))
+    await redis_session.save('jobs', ProcessingStatusData(
+        username=username,
+        status=ProcessingStatus.STARTING,
+        total_posts=total_posts,
+        percent=percent
+    ))
 
     for post_data in iterator:
-        await _create_post(session, Post(account_id=account_id, shortcode=post_data.shortcode, date_utc=post_data.date_utc, caption=post_data.caption,
-                                         likes=post_data.likes, comments=post_data.comments, url=post_data.url, video_url=post_data.video_url, typename=post_data.typename))
+        job: ProcessingStatusData = await redis_session.load('jobs', username)
+        if job.is_canceled:
+            await redis_session.save('jobs', ProcessingStatusData(
+                username=username,
+                is_canceled=job.is_canceled,
+                status=ProcessingStatus.CANCELED,
+                total_posts=total_posts,
+                percent=percent
+            ))
+            break
+
+        await _create_post(session, Post(
+            account_id=account_id,
+            shortcode=post_data.shortcode,
+            date_utc=post_data.date_utc,
+            caption=post_data.caption,
+            likes=post_data.likes,
+            comments=post_data.comments,
+            url=post_data.url,
+            video_url=post_data.video_url,
+            typename=post_data.typename
+        ))
 
         if downloaded_posts_count >= total_posts:
             break
 
         downloaded_posts_count += 1
         current_percent = round(
-            (downloaded_posts_count / total_posts) * 100, 2)
+            (downloaded_posts_count / total_posts) * 100)
 
         if current_percent != percent and current_percent % 2:
-            await redis_session.save('jobs', ProcessingStatusData(job_id=job_id, username=username, status=ProcessingStatus.PROCESSING, total_posts=total_posts, percent=percent))
+            percent = current_percent
+            await redis_session.save('jobs', ProcessingStatusData(
+                username=username,
+                status=ProcessingStatus.PROCESSING,
+                total_posts=total_posts,
+                percent=percent
+            ))
 
         time.sleep(round(random.uniform(0.2, 0.4), 2))
 
-    await redis_session.save('jobs', ProcessingStatusData(job_id=job_id, username=username, status=ProcessingStatus.COMPLETED, total_posts=total_posts, percent=percent))
+    await redis_session.save('jobs', ProcessingStatusData(
+        username=username,
+        status=ProcessingStatus.COMPLETED,
+        total_posts=total_posts,
+        percent=percent
+    ))
 
 
 async def download_posts(username: str, session: AsyncSession, redis_session: RedisManager):
-    value: InstAuthModel = await redis_session.load('auth')
+    inst_auth: InstAuthModel = await redis_session.load('auth')
 
-    if not value:
+    if not inst_auth:
         raise HTTPException(
             status_code=400, detail="Could not get inst auth. Please complete the inst auth")
 
-    Loader = _load_session(**value.model_dump())
+    job: ProcessingStatusData = await redis_session.load('jobs', username)
+    print(job.status.value)
+    if job.status == ProcessingStatus.PROCESSING or job.status == ProcessingStatus.STARTING:
+        raise HTTPException(
+            status_code=400, detail="Downloading process already has been started")
+
+    Loader = _load_session(**inst_auth.model_dump())
 
     try:
         profile = instaloader.Profile.from_username(Loader.context, username)
@@ -98,19 +153,23 @@ async def download_posts(username: str, session: AsyncSession, redis_session: Re
         await session.commit()
         await session.refresh(account)
 
-    job_id = str(uuid.uuid4())
+    asyncio.create_task(_download_worker(
+        username,
+        account.id,
+        total_posts,
+        profile,
+        session,
+        redis_session
+    ))
 
-    asyncio.create_task(_download_worker(job_id,
-                                         account.id, total_posts, profile, session, redis_session))
-
-    return {"job_id": job_id}
+    return {"job_id": username}
 
 
-async def get_download_status(job_id: str, redis_session: RedisManager):
+async def get_download_status(username: str, redis_session: RedisManager):
 
     async def get_status():
         while True:
-            current_job: ProcessingStatusData = await redis_session.load('jobs', job_id)
+            current_job: ProcessingStatusData = await redis_session.load('jobs', username)
             await asyncio.sleep(15)
 
             payload = json.dumps({

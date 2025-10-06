@@ -1,8 +1,9 @@
-from app.services.posts import download_posts, get_download_status
-from app.services.redis import RedisManager
-from app.core.postgres import get_session
 from app.models.posts import Post
 from app.core.redis import get_redis
+from app.core.postgres import get_session
+from app.services.redis import RedisManager
+from app.api.schemas.posts import ProcessingStatus, ProcessingStatusData
+from app.services.posts import download_posts, get_download_status
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -32,18 +33,39 @@ async def get_post(post_id: int, session: AsyncSession = Depends(get_session)):
 
 
 @router.get("/download/{username}", description="Download posts from inst and save in db")
-async def account_posts_download(username: str, session: AsyncSession = Depends(get_session), rdb: RedisManager = Depends(get_redis)):
+async def account_posts_download(
+    username: str,
+    session: AsyncSession = Depends(get_session),
+    rdb: RedisManager = Depends(get_redis)
+):
     return await download_posts(username, session, rdb)
 
 
-@router.get("/download/{username}/stop", description="Stop posts downloading process")
-async def stop_account_posts_download(username: str, session: AsyncSession = Depends(get_session), rdb=Depends(get_redis)):
+@router.get("/download/{username}/cancel", description="Stop posts downloading process")
+async def stop_account_posts_download(username: str, rdb: RedisManager = Depends(get_redis)):
+    current_job: ProcessingStatusData = await rdb.load('jobs', username)
 
-    return
+    if not current_job:
+        raise HTTPException(
+            status_code=400, detail=f"Process with {username} was not started")
+
+    current_job.is_canceled = True
+    current_job.status = ProcessingStatus.CANCELED
+    await rdb.save('jobs', current_job)
+    return {
+        "status": "canceled",
+    }
 
 
 @router.get("/list/{username}", description="Get the posts by username account")
-async def list_accounts_posts(username: str,  start_date=None, end_date=None, text=None, page: int = Query(1, ge=1, le=10_000), session: AsyncSession = Depends(get_session)):
+async def list_accounts_posts(
+    username: str,
+    start_date=None,
+    end_date=None,
+    text=None,
+    page: int = Query(1, ge=1, le=10_000),
+    session: AsyncSession = Depends(get_session)
+):
     limit = 50
     stmt = select(Post)
     if username:
@@ -64,6 +86,6 @@ async def list_accounts_posts(username: str,  start_date=None, end_date=None, te
     return result.scalars().all()
 
 
-@router.get('/download_status/{job_id}')
-async def get_posts_download_status(job_id: str, rdb=Depends(get_redis)):
-    return await get_download_status(job_id, rdb)
+@router.get('/download_status/{username}')
+async def get_posts_download_status(username: str, rdb: RedisManager = Depends(get_redis)):
+    return await get_download_status(username, rdb)

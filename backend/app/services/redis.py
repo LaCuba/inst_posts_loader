@@ -18,7 +18,7 @@ class RedisManager:
                 if not isinstance(value, ProcessingStatusData):
                     raise TypeError("Unsupported model type")
 
-                redis_key = f"jobs:{value.job_id}"
+                redis_key = f"jobs:{value.username}"
                 await self.redis.set(redis_key, value.model_dump_json())
             case "auth":
                 if not isinstance(value, InstAuthModel):
@@ -33,10 +33,14 @@ class RedisManager:
             case 'jobs':
                 redis_key = f"{key}:{identifier}"
                 raw = await self.redis.get(redis_key)
+                if not raw:
+                    return None
 
                 return ProcessingStatusData.model_validate_json(raw)
             case 'auth':
                 raw = await self.redis.get(key)
+                if not raw:
+                    return None
 
                 return InstAuthModel.model_validate_json(raw)
             case _:

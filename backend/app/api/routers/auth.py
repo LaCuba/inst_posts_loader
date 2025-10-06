@@ -11,5 +11,5 @@ router = APIRouter()
 async def set_inst_auth(body: InstAuthModel, rdb: RedisManager = Depends(get_redis)):
     await rdb.save('auth', body, 3600)
     return {
-        "status": "ok",
+        "status": "success",
     }
