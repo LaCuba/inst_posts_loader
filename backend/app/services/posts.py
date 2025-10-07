@@ -99,7 +99,7 @@ async def _download_worker(
         current_percent = round(
             (downloaded_posts_count / total_posts) * 100)
 
-        if current_percent != percent and current_percent % 2:
+        if current_percent != percent:
             percent = current_percent
             await redis_session.save('jobs', ProcessingStatusData(
                 username=username,
