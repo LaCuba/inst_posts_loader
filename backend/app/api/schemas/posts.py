@@ -25,3 +25,7 @@ class ProcessingStatusData(BaseModel):
     status: ProcessingStatus
     total_posts: int
     percent: int
+
+
+class DownloadPostPayload(BaseModel):
+    link: str

@@ -16,11 +16,16 @@ import { NavLink } from 'react-router'
 const ITEMS = [
   {
     href: '/',
-    label: 'Downloader',
+    label: 'Download all posts',
+    exact: true,
   },
   {
     href: '/accounts',
     label: 'Accounts',
+  },
+  {
+    href: '/download_post',
+    label: 'Download post',
   },
 ]
 

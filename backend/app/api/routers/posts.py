@@ -2,8 +2,8 @@ from app.models.posts import Post
 from app.core.redis import get_redis
 from app.core.postgres import get_session
 from app.services.redis import RedisManager
-from app.api.schemas.posts import ProcessingStatus, ProcessingStatusData
-from app.services.posts import download_posts, get_download_status
+from app.api.schemas.posts import DownloadPostPayload, ProcessingStatus, ProcessingStatusData
+from app.services.posts import download_post_by_link, download_posts, get_download_status
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -39,6 +39,15 @@ async def account_posts_download(
     rdb: RedisManager = Depends(get_redis)
 ):
     return await download_posts(username, session, rdb)
+
+
+@router.post("/download/post", description="Download post from inst by link")
+async def download_post_by_link_route(
+    body: DownloadPostPayload,
+    session: AsyncSession = Depends(get_session),
+    rdb: RedisManager = Depends(get_redis)
+):
+    return await download_post_by_link(body.link, session, rdb)
 
 
 @router.get("/download/{username}/cancel", description="Stop posts downloading process")

@@ -1,3 +1,8 @@
+import glob
+import mimetypes
+import os
+from pathlib import Path
+from urllib.parse import urlparse
 from app.models.posts import Account, Post
 from app.api.schemas.posts import ProcessingStatus, ProcessingStatusData
 from app.api.schemas.auth import InstAuthModel
@@ -12,9 +17,10 @@ import asyncio
 import instaloader
 
 from fastapi import HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from instaloader import Post as PostLoader
 
 
 async def _create_post(session: AsyncSession, post: Post):
@@ -183,3 +189,78 @@ async def get_download_status(username: str, redis_session: RedisManager):
                 break
 
     return StreamingResponse(safe_sse(get_status()), media_type="text/event-stream")
+
+
+def _pick_media_file(folder: str) -> Path:
+    p = Path(folder)
+    if not p.exists() or not p.is_dir():
+        raise HTTPException(status_code=404, detail="Target folder not found")
+
+    # Prefer mp4 (case-insensitive)
+    mp4_files = sorted(p.glob("*.mp4")) + sorted(p.glob("*.MP4"))
+    if mp4_files:
+        return mp4_files[0]
+
+    # Otherwise, look for images (common extensions)
+    image_files = []
+    for ext in ("*.jpg", "*.jpeg", "*.png", "*.gif", "*.webp"):
+        image_files.extend(sorted(p.glob(ext)))
+        image_files.extend(sorted(p.glob(ext.upper())))
+    if image_files:
+        return image_files[0]
+
+    raise HTTPException(
+        status_code=404, detail="No media found in downloaded post")
+
+
+def _shortcode_from_url(url: str) -> str:
+    path = urlparse(url).path  # e.g. "/p/SHORTCODE/"
+    parts = [p for p in path.split("/") if p]
+    # parts => ["p","SHORTCODE"] or ["reel","SHORTCODE"]
+    if len(parts) >= 2:
+        return parts[1]
+    raise ValueError("Cannot find shortcode in URL")
+
+
+async def download_post_by_link(link: str, session: AsyncSession, redis_session: RedisManager):
+    # L = Instaloader(download_video_thumbnails=False, save_metadata=False)
+    inst_auth: InstAuthModel = await redis_session.load('auth')
+
+    if not inst_auth:
+        raise HTTPException(
+            status_code=400, detail="Could not get inst auth. Please complete the inst auth")
+
+    Loader = _load_session(**inst_auth.model_dump())
+
+    shortcode = _shortcode_from_url(link)
+
+    post = PostLoader.from_shortcode(Loader.context, shortcode)
+    target_folder = f"downloads/{post.owner_username}_{shortcode}"
+    os.makedirs(target_folder, exist_ok=True)
+
+    path_target_folder = Path(target_folder)
+
+    Loader.download_post(post, target=path_target_folder)
+    print("Downloaded to:", target_folder)
+
+    # media_files = glob.glob(os.path.join(
+    #     target_folder, "*.jpg")) + glob.glob(os.path.join(target_folder, "*.mp4"))
+    # if not media_files:
+    #     raise HTTPException(
+    #         status_code=404, detail="No media found in downloaded post")
+
+    # file_path = media_files[0]
+    # filename = os.path.basename(file_path)
+
+    file_path = _pick_media_file(target_folder)
+    media_type, _ = mimetypes.guess_type(str(file_path))
+    if media_type is None:
+        media_type = "video/mp4" if file_path.suffix.lower() == ".mp4" else "image/jpeg"
+
+    return FileResponse(path=str(file_path), filename=file_path.name, media_type=media_type)
+
+    # return FileResponse(
+    #     path=file_path,
+    #     filename=filename,
+    #     media_type="video/mp4" if file_path.endswith(".mp4") else "image/jpeg",
+    # )
